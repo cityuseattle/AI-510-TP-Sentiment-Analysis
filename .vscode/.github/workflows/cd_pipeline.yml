@@ -1,0 +1,27 @@
+name: CD - ML Model
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  Setiment-Analysis Deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.10-slim'
+
+    - name: Install Dependencies 
+      run: pip install -r AI510-Project/model/requirements.txt
+      
+    - name: Train Model
+      run: python AI510-Project/model/train.py
+
+    - name: Run Flask App
+      run: python AI510-Project/predict.py
