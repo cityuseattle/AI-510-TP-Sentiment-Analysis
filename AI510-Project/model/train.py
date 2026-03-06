@@ -76,6 +76,14 @@ def main():
     if len(df) < 50:
         raise ValueError("Too few rows after cleaning. Check your column names and label values.")
 
+    label_counts = df["label"].value_counts()
+    if (label_counts < 2).any():
+        small_classes = label_counts[label_counts < 2].to_dict()
+        raise ValueError(
+            "Each class must have at least 2 samples for stratified split. "
+            f"Too-small classes: {small_classes}"
+        )
+
     X_train, X_test, y_train, y_test = train_test_split(
         df["text"],
         df["label"],
@@ -99,13 +107,16 @@ def main():
     print("\nClassification Report:")
     print(classification_report(y_test, preds, zero_division=0))
 
-    os.makedirs("model/artifacts", exist_ok=True)
-    joblib.dump(tfidf, "model/artifacts/tfidf.pkl")
-    joblib.dump(model, "model/artifacts/sentiment_model.pkl")
+    artifacts_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "artifacts")
+    os.makedirs(artifacts_dir, exist_ok=True)
+    tfidf_path = os.path.join(artifacts_dir, "tfidf.pkl")
+    model_path = os.path.join(artifacts_dir, "sentiment_model.pkl")
+    joblib.dump(tfidf, tfidf_path)
+    joblib.dump(model, model_path)
 
     print("\nSaved artifacts:")
-    print(" - model/artifacts/tfidf.pkl")
-    print(" - model/artifacts/sentiment_model.pkl")
+    print(f" - {tfidf_path}")
+    print(f" - {model_path}")
 
 
 if __name__ == "__main__":

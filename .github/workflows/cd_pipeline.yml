@@ -5,26 +5,56 @@ on:
     branches: [main]
 
 jobs:
-  Setiment-Analysis_Deploy:
+  Sentiment-Analysis_Deploy:
     runs-on: ubuntu-latest
 
     steps:
     - name: Checkout Code
       uses: actions/checkout@v4
 
-    - name: Set up Python
-      uses: actions/setup-python@v5
-      with:
-        python-version: '3.x'
-
-    - name: Install Dependencies 
-      run: pip install -r AI510-Project/model/requirements.txt
-      
-    - name: Train Model
-      run: python AI510-Project/model/train.py
-
-    - name: Run App and Test
+    - name: Show Docker environment
       run: |
-        nohup python AI510-Project/predict.py &
-        sleep 5
-        curl -X POST http://127.0.0.1:5000/predict \ -H "Content-Type: application/json" \ -d '{"text": "I love using this product!"}' {"cleaned_text":"i love using this product","input":"I love using this product!","sentiment":"positive"}
+        docker version
+        docker info
+
+    - name: Build Docker image
+      run: |
+        docker build \
+          -t sentiment-analysis-app:ci \
+          -f AI510-Project/model/Dockerfile \
+          AI510-Project/model
+
+    - name: Show built image details
+      run: |
+        docker image ls sentiment-analysis-app:ci
+        docker image inspect sentiment-analysis-app:ci --format='ID={{.Id}} SIZE={{.Size}}'
+
+    - name: Run container
+      run: |
+        docker run -d --name sentiment-api -p 5000:5000 sentiment-analysis-app:ci
+
+    - name: Wait for app and test prediction API
+      run: |
+        for i in {1..20}; do
+          if curl -sS -o /dev/null -X POST http://127.0.0.1:5000/predict \
+            -H "Content-Type: application/json" \
+            -d '{"text": "I love using this product!"}'; then
+            break
+          fi
+          sleep 2
+        done
+
+        RESPONSE=$(curl -sS -X POST http://127.0.0.1:5000/predict \
+          -H "Content-Type: application/json" \
+          -d '{"text": "I love using this product!"}')
+
+        echo "$RESPONSE"
+        echo "$RESPONSE" | grep -q '"sentiment"'
+
+    - name: Show container logs on failure
+      if: failure()
+      run: docker logs sentiment-api
+
+    - name: Cleanup container
+      if: always()
+      run: docker rm -f sentiment-api || true
