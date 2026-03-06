@@ -9,14 +9,17 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+    # Fetch repository contents for Docker build context.
     - name: Checkout Code
       uses: actions/checkout@v4
 
+    # Print Docker runtime details to help debug runner/environment issues.
     - name: Show Docker environment
       run: |
         docker version
         docker info
 
+    # Build the app image from the model service Dockerfile.
     - name: Build Docker image
       run: |
         docker build \
@@ -24,17 +27,21 @@ jobs:
           -f AI510-Project/model/Dockerfile \
           AI510-Project/model
 
+    # Confirm image exists and print metadata for troubleshooting.
     - name: Show built image details
       run: |
         docker image ls sentiment-analysis-app:ci
         docker image inspect sentiment-analysis-app:ci --format='ID={{.Id}} SIZE={{.Size}}'
 
+    # Start container in detached mode and expose Flask on localhost:5000.
     - name: Run container
       run: |
         docker run -d --name sentiment-api -p 5000:5000 sentiment-analysis-app:ci
 
+    # Wait until the API is reachable, then validate response payload.
     - name: Wait for app and test prediction API
       run: |
+        # Retry briefly while the containerized app finishes booting.
         for i in {1..20}; do
           if curl -sS -o /dev/null -X POST http://127.0.0.1:5000/predict \
             -H "Content-Type: application/json" \
@@ -44,17 +51,21 @@ jobs:
           sleep 2
         done
 
+        # Capture a real prediction response for logging and assertion.
         RESPONSE=$(curl -sS -X POST http://127.0.0.1:5000/predict \
           -H "Content-Type: application/json" \
           -d '{"text": "I love using this product!"}')
 
         echo "$RESPONSE"
+        # Fail CI if expected output field is missing.
         echo "$RESPONSE" | grep -q '"sentiment"'
 
+    # Dump logs if any earlier step fails.
     - name: Show container logs on failure
       if: failure()
       run: docker logs sentiment-api
 
+    # Always stop/remove the container to keep the runner clean.
     - name: Cleanup container
       if: always()
       run: docker rm -f sentiment-api || true
