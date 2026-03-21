@@ -24,8 +24,8 @@ jobs:
       run: |
         docker build \
           -t sentiment-analysis-app:ci \
-          -f AI510-Project/model/Dockerfile \
-          AI510-Project/model
+          -f Dockerfile \
+          .
 
     # Confirm image exists and print metadata for troubleshooting.
     - name: Show built image details
