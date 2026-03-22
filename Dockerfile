@@ -1,17 +1,18 @@
 FROM python:3.10-slim
 
-# Set working directory inside the container
 WORKDIR /app
 
 # Install Python dependencies
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy the entire project (including artifacts folder)
+# Copy the entire project (including AI510-Project folder)
 COPY . .
 
-# Expose port if using Flask/FastAPI
-EXPOSE 8000
+# Move into the folder where predict.py actually lives
+WORKDIR /app/AI510-Project/model
 
-# Start the inference script (update if your file name differs)
-CMD ["python", "AI510-Project/model/predict.py"]
+EXPOSE 5000
+
+# Run predict.py from inside its own folder
+CMD ["python", "predict.py"]
