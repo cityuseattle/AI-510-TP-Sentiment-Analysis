@@ -14,4 +14,4 @@ COPY . .
 EXPOSE 8000
 
 # Start the inference script (update if your file name differs)
-CMD ["python", "predict.py"]
+CMD ["python", "AI510-Project/model/predict.py"]
