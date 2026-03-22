@@ -1,16 +1,19 @@
 #!/usr/bin/env bash
 set -e
 
-ARTIFACT_NAME="sentiment-image"
-ARTIFACT_FILE="sentiment-image.tar"
-
-echo "🔵 Downloading artifact: $ARTIFACT_NAME"
-gh run download --name "$ARTIFACT_NAME"
-
-echo "🔵 Artifact downloaded: $ARTIFACT_FILE"
+# Reuse artifact if it already exists
+if [ -f sentiment-image.tar ]; then
+    echo "🟡 Artifact already exists — reusing sentiment-image.tar"
+else
+    echo "🔵 Downloading artifact: sentiment-image"
+    gh run download --name sentiment-image
+fi
 
 echo "🔵 Loading Docker image..."
-docker load -i "$ARTIFACT_FILE"
+docker load -i sentiment-image.tar
 
-echo "🔵 Running container on port 5000..."
-docker run -p 5000:5000 sentiment-analysis-app:ci
+echo "🔵 Starting backend container..."
+docker rm -f sentiment-backend 2>/dev/null || true
+docker run -d -p 5000:5000 --name sentiment-backend sentiment-analysis-app:ci
+
+echo "Backend container started on port 5000"
