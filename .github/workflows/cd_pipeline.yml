@@ -75,19 +75,34 @@ jobs:
       run: docker rm -f sentiment-api || true
 
     # ---------------------------------------------------------
-    # PUSH TO GHCR USING CURRENT USERNAME (NO HARD-CODING)
+    # PUSH TO GHCR USING CURRENT USERNAME 
+    # !!!!!!!!!!!!!!!!!!Permission Issue for student account
     # ---------------------------------------------------------
 
     # Log in to GHCR using the GitHub-provided token.
-    - name: Log in to GHCR
-      run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+    #- name: Log in to GHCR
+    #  run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
     # Tag the CI image for GHCR under the current GitHub username.
-    - name: Tag image for GHCR
-      run: |
-        docker tag sentiment-analysis-app:ci \
-          ghcr.io/${{ github.actor }}/sentiment-analysis-app:latest
+    #- name: Tag image for GHCR
+    #  run: |
+    #    docker tag sentiment-analysis-app:ci \
+    #      ghcr.io/${{ github.actor }}/sentiment-analysis-app:latest
 
     # Push the tagged image to GHCR.
-    - name: Push image to GHCR
-      run: docker push ghcr.io/${{ github.actor }}/sentiment-analysis-app:latest
+    #- name: Push image to GHCR
+    #  run: docker push ghcr.io/${{ github.actor }}/sentiment-analysis-app:latest
+
+    # ---------------------------------------------------------
+    # SAVE DOCKER IMAGE AS ARTIFACT FOR CODESPACES
+    # Workaround for above permission issue
+    # ---------------------------------------------------------
+
+    - name: Save Docker image as tar
+      run: docker save sentiment-analysis-app:ci -o sentiment-image.tar
+
+    - name: Upload image artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: sentiment-image
+        path: sentiment-image.tar
